@@ -1,0 +1,19 @@
+.empleados-page .page-toolbar {
+  flex-wrap: wrap;
+}
+
+@media (max-width: 1024px) {
+  .empleados-page .page-toolbar-left {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .empleados-page .search-bar {
+    max-width: 100%;
+  }
+
+  .empleados-page .filter-tabs {
+    overflow-x: auto;
+  }
+}

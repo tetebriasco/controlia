@@ -1,0 +1,10 @@
+/* Fichadas page specific styles */
+.fichadas-page .page-toolbar-left {
+  flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  .fichadas-page .stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
