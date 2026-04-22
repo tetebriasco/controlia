@@ -1,73 +1,44 @@
-# React + TypeScript + Vite
+# Controlia
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**Control Horario y Novedades Laborales para Pymes**
 
-Currently, two official plugins are available:
+Sistema de gestión de asistencia, fichadas y novedades laborales diseñado para pymes de entre 4 y 100 empleados. Centraliza la información de control horario y la prepara para que el contador pueda liquidar sueldos correctamente.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+---
 
-## React Compiler
+## ¿Qué hace Controlia?
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Gestión de Empleados** — Alta, baja y modificación de datos laborales
+- **Horarios y Turnos** — Configuración de jornadas fijas, rotativas y parciales
+- **Registro de Fichadas** — Control de entrada y salida por múltiples modalidades
+- **Motor de Novedades** — Detección automática de tardanzas, ausencias y horas extra
+- **Cierre Mensual** — Consolidación y exportación de preliquidación para el contador
 
-## Expanding the ESLint configuration
+## Roles del Sistema
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+| Rol | Acceso |
+|---|---|
+| **Administrador** | Gestión completa: empleados, fichadas, novedades, cierre mensual |
+| **Empleado** | Fichar entrada/salida, consultar asistencias y novedades propias |
+| **Contador Externo** | Acceso a resúmenes de preliquidación y exportación de informes |
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Cómo ejecutar
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+```bash
+# Instalar dependencias
+npm install
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+# Levantar servidor de desarrollo
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+La app se levanta en `http://localhost:5173`
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Deploy
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+La app está desplegada en Vercel.
+
+---
+
+**Universidad Nacional de La Matanza** — Ingeniería en Informática  
+Gestión Aplicada al Desarrollo de Software I — 2026
