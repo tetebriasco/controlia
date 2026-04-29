@@ -29,14 +29,20 @@ const mockUsers: Record<UserRole, User> = {
 };
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => {
+    const saved = localStorage.getItem('controlia_auth_user');
+    return saved ? JSON.parse(saved) : null;
+  });
 
   const login = (role: UserRole) => {
-    setUser(mockUsers[role]);
+    const u = mockUsers[role];
+    setUser(u);
+    localStorage.setItem('controlia_auth_user', JSON.stringify(u));
   };
 
   const logout = () => {
     setUser(null);
+    localStorage.removeItem('controlia_auth_user');
   };
 
   return (

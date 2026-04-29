@@ -34,6 +34,7 @@ export interface Empleado {
   estado: EstadoEmpleado;
   email?: string;
   telefono?: string;
+  horarios?: Horario;
 }
 
 // ── Horarios ──

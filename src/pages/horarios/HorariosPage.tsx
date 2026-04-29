@@ -1,15 +1,64 @@
-import { Plus, Edit, Clock, Users } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Plus, Edit, Clock, Users, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { horarios } from '../../data/horarios';
-import { empleados } from '../../data/empleados';
+import { horarioService } from '../../services/horario.service';
+import { empleadoService } from '../../services/empleado.service';
+import type { Horario, Empleado } from '../../types';
 
 export function HorariosPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const isAdmin = user?.rol === 'admin';
+
+  const [horarios, setHorarios] = useState<Horario[]>([]);
+  const [empleados, setEmpleados] = useState<Empleado[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [horariosData, empleadosData] = await Promise.all([
+          horarioService.getAll(),
+          empleadoService.getAll()
+        ]);
+        setHorarios(horariosData);
+        setEmpleados(empleadosData);
+      } catch (err: any) {
+        console.error('Error fetching data:', err);
+        setError('No se pudieron cargar los horarios.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const handleDelete = async (id: number) => {
+    if (!window.confirm('¿Estás seguro de que deseas eliminar este horario?')) return;
+    try {
+      await horarioService.delete(id);
+      setHorarios(prev => prev.filter(h => h.id !== id));
+    } catch (err: any) {
+      alert(err.message || 'Error al eliminar horario');
+    }
+  };
+
+  if (loading) {
+    return <div style={{ padding: '20px' }}>Cargando horarios...</div>;
+  }
+
+  if (error) {
+    return <div style={{ padding: '20px', color: 'red' }}>{error}</div>;
+  }
 
   // For employee view, show only their assigned schedule
   if (!isAdmin) {
-    const myHorario = horarios.find((h) => h.id === 2); // horarioId for María
+    // We assume the user has their ID or something in the context, but for now we fallback:
+    // This logic might need adjustment depending on how we map User to Empleado
+    const myHorario = horarios.find((h) => h.id === 2); // Fallback mock value or fetch from real user data if available
     return (
       <div className="animate-fade-in">
         <div className="card">
@@ -17,7 +66,7 @@ export function HorariosPage() {
             <h3 className="card-title">Mi Horario Asignado</h3>
           </div>
           <div className="card-body">
-            {myHorario && (
+            {myHorario ? (
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 {[
                   { label: 'Nombre del Turno', value: myHorario.nombre },
@@ -35,6 +84,8 @@ export function HorariosPage() {
                   </div>
                 ))}
               </div>
+            ) : (
+              <div style={{ padding: '20px' }}>No tienes un horario asignado o no se pudo cargar.</div>
             )}
           </div>
         </div>
@@ -52,7 +103,7 @@ export function HorariosPage() {
           </span>
         </div>
         <div className="page-toolbar-right">
-          <button className="btn btn-primary" id="btn-nuevo-horario">
+          <button className="btn btn-primary" id="btn-nuevo-horario" onClick={() => navigate('/horarios/nuevo')}>
             <Plus size={16} /> Nuevo Horario
           </button>
         </div>
@@ -64,9 +115,16 @@ export function HorariosPage() {
           const assignedCount = empleados.filter((e) => e.horarioId === h.id && e.estado === 'activo').length;
           return (
             <div className="card" key={h.id}>
-              <div className="card-header">
-                <h3 className="card-title" style={{ fontSize: '15px' }}>{h.nombre}</h3>
-                <button className="btn btn-ghost btn-sm"><Edit size={14} /></button>
+              <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <h3 className="card-title" style={{ fontSize: '15px', margin: 0 }}>{h.nombre}</h3>
+                <div>
+                  <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/horarios/${h.id}`)}>
+                    <Edit size={14} />
+                  </button>
+                  <button className="btn btn-ghost btn-sm" style={{ color: 'red' }} onClick={() => handleDelete(h.id)}>
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               </div>
               <div className="card-body">
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -104,7 +162,7 @@ export function HorariosPage() {
                   </div>
 
                   <div style={{ fontSize: '12px', color: 'var(--gris-texto)' }}>
-                    <strong>Días:</strong> {h.diasSemana.map((d) => d.charAt(0).toUpperCase() + d.slice(1, 3)).join(', ')}
+                    <strong>Días:</strong> {h.diasSemana.length > 0 ? h.diasSemana.map((d) => d.charAt(0).toUpperCase() + d.slice(1, 3)).join(', ') : 'Ninguno'}
                   </div>
                 </div>
               </div>

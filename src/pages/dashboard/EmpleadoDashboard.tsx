@@ -1,15 +1,41 @@
 import { useState, useEffect } from 'react';
 import { LogIn, LogOut as LogOutIcon, Clock, CalendarDays, AlertCircle } from 'lucide-react';
-import { fichadas } from '../../data/fichadas';
-import { novedades } from '../../data/novedades';
+import { fichadas } from '../../data/fichadas'; // V2
+import { novedades } from '../../data/novedades'; // V2
+import { empleadoService } from '../../services/empleado.service';
+import { horarioService } from '../../services/horario.service';
+import type { Empleado, Horario } from '../../types';
 
 export function EmpleadoDashboard() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isClockedIn, setIsClockedIn] = useState(true);
+  
+  const [empleado, setEmpleado] = useState<Empleado | null>(null);
+  const [horario, setHorario] = useState<Horario | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    // Simulamos que el usuario logueado es el Empleado 2 para la demo
+    const fetchData = async () => {
+      try {
+        const emp = await empleadoService.getById(2);
+        setEmpleado(emp);
+        if (emp.horarioId) {
+          const hor = await horarioService.getById(emp.horarioId);
+          setHorario(hor);
+        }
+      } catch (err) {
+        console.error("Error al cargar empleado:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
   }, []);
 
   const timeStr = currentTime.toLocaleTimeString('es-AR', {
@@ -25,7 +51,7 @@ export function EmpleadoDashboard() {
     year: 'numeric',
   });
 
-  // Employee ID 2 (María Gómez) data
+  // Employee ID 2 (María Gómez) data - V2 Mocks
   const myFichadas = fichadas
     .filter((f) => f.empleadoId === 2)
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
@@ -39,11 +65,13 @@ export function EmpleadoDashboard() {
     setIsClockedIn(tipo === 'entrada');
   };
 
+  if (loading) return <div style={{ padding: '20px' }}>Cargando panel...</div>;
+
   return (
     <div className="dashboard-page">
       <div className="dashboard-welcome">
-        <h2>Hola, María 👋</h2>
-        <p>Turno Tarde — Comercio (14:00 a 22:00)</p>
+        <h2>Hola, {empleado ? empleado.nombre.split(' ')[0] : 'Empleado'} 👋</h2>
+        <p>{horario ? `${horario.nombre} (${horario.horaEntrada} a ${horario.horaSalida})` : 'Sin horario asignado'}</p>
       </div>
 
       <div className="grid-2">
@@ -55,7 +83,7 @@ export function EmpleadoDashboard() {
               <div className="clock-date">{dateStr}</div>
               <div className={`clock-status ${isClockedIn ? 'in' : 'out'}`}>
                 <Clock size={14} />
-                {isClockedIn ? 'Fichada de entrada registrada' : 'Sin fichar'}
+                {isClockedIn ? 'Fichada de entrada registrada (Demo V2)' : 'Sin fichar (Demo V2)'}
               </div>
               <div className="clock-buttons">
                 <button
@@ -84,32 +112,36 @@ export function EmpleadoDashboard() {
         {/* My Schedule */}
         <div className="card">
           <div className="card-header">
-            <h3 className="card-title">Mi Horario</h3>
+            <h3 className="card-title">Mi Horario (DB Real)</h3>
             <CalendarDays size={18} style={{ color: 'var(--gris-texto)' }} />
           </div>
           <div className="card-body">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--gris-muy-claro)', borderRadius: '8px' }}>
-                <span style={{ color: 'var(--gris-texto)', fontSize: '14px' }}>Turno</span>
-                <span style={{ fontWeight: 600 }}>Tarde — Comercio</span>
+            {horario ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--gris-muy-claro)', borderRadius: '8px' }}>
+                  <span style={{ color: 'var(--gris-texto)', fontSize: '14px' }}>Turno</span>
+                  <span style={{ fontWeight: 600 }}>{horario.nombre}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--gris-muy-claro)', borderRadius: '8px' }}>
+                  <span style={{ color: 'var(--gris-texto)', fontSize: '14px' }}>Horario</span>
+                  <span style={{ fontWeight: 600 }}>{horario.horaEntrada} — {horario.horaSalida}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--gris-muy-claro)', borderRadius: '8px' }}>
+                  <span style={{ color: 'var(--gris-texto)', fontSize: '14px' }}>Descanso</span>
+                  <span style={{ fontWeight: 600 }}>{horario.descansoInicio ? `${horario.descansoInicio} — ${horario.descansoFin}` : 'Sin descanso'}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--gris-muy-claro)', borderRadius: '8px' }}>
+                  <span style={{ color: 'var(--gris-texto)', fontSize: '14px' }}>Días laborales</span>
+                  <span style={{ fontWeight: 600 }}>{horario.diasSemana.length > 0 ? horario.diasSemana.map((d) => d.charAt(0).toUpperCase() + d.slice(1, 3)).join(', ') : 'Ninguno'}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--gris-muy-claro)', borderRadius: '8px' }}>
+                  <span style={{ color: 'var(--gris-texto)', fontSize: '14px' }}>Tolerancia</span>
+                  <span style={{ fontWeight: 600 }}>{horario.toleranciaEntrada} min</span>
+                </div>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--gris-muy-claro)', borderRadius: '8px' }}>
-                <span style={{ color: 'var(--gris-texto)', fontSize: '14px' }}>Horario</span>
-                <span style={{ fontWeight: 600 }}>14:00 — 22:00</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--gris-muy-claro)', borderRadius: '8px' }}>
-                <span style={{ color: 'var(--gris-texto)', fontSize: '14px' }}>Descanso</span>
-                <span style={{ fontWeight: 600 }}>18:00 — 18:30</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--gris-muy-claro)', borderRadius: '8px' }}>
-                <span style={{ color: 'var(--gris-texto)', fontSize: '14px' }}>Días laborales</span>
-                <span style={{ fontWeight: 600 }}>Lun a Sáb</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--gris-muy-claro)', borderRadius: '8px' }}>
-                <span style={{ color: 'var(--gris-texto)', fontSize: '14px' }}>Tolerancia</span>
-                <span style={{ fontWeight: 600 }}>10 min</span>
-              </div>
-            </div>
+            ) : (
+              <div style={{ padding: '20px', color: 'var(--gris-texto)' }}>No tienes un horario asignado actualmente.</div>
+            )}
           </div>
         </div>
       </div>

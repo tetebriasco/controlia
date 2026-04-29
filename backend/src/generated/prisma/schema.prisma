@@ -1,0 +1,112 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model cierremensualdetalles {
+  id                      Int              @id @default(autoincrement())
+  cierremensualid         Int
+  empleadoid              Int
+  diastrabajados          Int
+  ausenciasjustificadas   Int
+  ausenciasinjustificadas Int
+  horasextra50            Int
+  horasextra100           Int
+  tardanzasacumuladas     Int
+  cierresmensuales        cierresmensuales @relation(fields: [cierremensualid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  empleados               empleados        @relation(fields: [empleadoid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model cierresmensuales {
+  id                    Int                     @id @default(autoincrement())
+  periodo               String                  @db.VarChar(20)
+  fechacierre           DateTime?               @db.Timestamp(6)
+  usuariocierreid       Int?
+  estado                String                  @db.VarChar(50)
+  cierremensualdetalles cierremensualdetalles[]
+  usuarios              usuarios?               @relation(fields: [usuariocierreid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model empleados {
+  id                    Int                     @id @default(autoincrement())
+  legajo                String                  @unique @db.VarChar(50)
+  nombre                String                  @db.VarChar(100)
+  apellido              String                  @db.VarChar(100)
+  dni                   String                  @unique @db.VarChar(20)
+  cuil                  String                  @unique @db.VarChar(20)
+  fechaingreso          DateTime                @db.Date
+  categorialaboral      String                  @db.VarChar(100)
+  convenio              String?                 @db.VarChar(100)
+  tipojornada           String                  @db.VarChar(50)
+  horarioid             Int
+  diasdescanso          String                  @db.VarChar(100)
+  modalidadfichada      String                  @db.VarChar(50)
+  estado                String                  @db.VarChar(50)
+  cierremensualdetalles cierremensualdetalles[]
+  horarios              horarios                @relation(fields: [horarioid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  fichadas              fichadas[]
+  novedades             novedades[]
+  usuarios              usuarios[]
+}
+
+model fichadas {
+  id                Int        @id @default(autoincrement())
+  empleadoid        Int
+  timestamp         DateTime   @db.Timestamp(6)
+  tipo              String     @db.VarChar(20)
+  origen            String     @db.VarChar(50)
+  usuarioregistro   Int?
+  motivo            String?
+  escorreccion      Boolean    @default(false)
+  fichadaoriginalid Int?
+  empleados         empleados  @relation(fields: [empleadoid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  fichadas          fichadas?  @relation("fichadasTofichadas", fields: [fichadaoriginalid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  other_fichadas    fichadas[] @relation("fichadasTofichadas")
+  usuarios          usuarios?  @relation(fields: [usuarioregistro], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model horarios {
+  id                 Int         @id @default(autoincrement())
+  nombre             String      @db.VarChar(100)
+  tipo               String      @db.VarChar(50)
+  diassemana         String
+  horaentrada        DateTime    @db.Time(6)
+  horasalida         DateTime    @db.Time(6)
+  toleranciaentrada  Int
+  toleranciasalida   Int
+  descansoinicio     DateTime?   @db.Time(6)
+  descansofin        DateTime?   @db.Time(6)
+  minutosmindescanso Int
+  umbralhorasextra   Int
+  empleados          empleados[]
+}
+
+model novedades {
+  id              Int       @id @default(autoincrement())
+  empleadoid      Int
+  tipo            String    @db.VarChar(50)
+  fechasafectadas String
+  cantidad        Decimal   @db.Decimal(10, 2)
+  unidad          String    @db.VarChar(20)
+  estado          String    @db.VarChar(50)
+  origen          String    @db.VarChar(50)
+  observacion     String?
+  periodo         String    @db.VarChar(20)
+  empleados       empleados @relation(fields: [empleadoid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model usuarios {
+  id               Int                @id @default(autoincrement())
+  nombre           String             @db.VarChar(100)
+  email            String             @unique @db.VarChar(150)
+  passwordhash     String             @db.VarChar(255)
+  rol              String             @db.VarChar(50)
+  empleadoid       Int?
+  cierresmensuales cierresmensuales[]
+  fichadas         fichadas[]
+  empleados        empleados?         @relation(fields: [empleadoid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}

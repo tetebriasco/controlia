@@ -4,7 +4,9 @@ import { AppLayout } from './components/layout/AppLayout';
 import { LoginPage } from './pages/auth/LoginPage';
 import { DashboardPage } from './pages/dashboard/DashboardPage';
 import { EmpleadosPage } from './pages/empleados/EmpleadosPage';
+import { EmpleadoForm } from './pages/empleados/EmpleadoForm';
 import { HorariosPage } from './pages/horarios/HorariosPage';
+import { HorarioForm } from './pages/horarios/HorarioForm';
 import { FichadasPage } from './pages/fichadas/FichadasPage';
 import { NovedadesPage } from './pages/novedades/NovedadesPage';
 import { CierrePage } from './pages/cierre/CierrePage';
@@ -19,9 +21,11 @@ function App() {
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="empleados" element={<EmpleadosPage />} />
-            <Route path="empleados/nuevo" element={<EmpleadosPage />} />
-            <Route path="empleados/:id" element={<EmpleadosPage />} />
+            <Route path="empleados/nuevo" element={<EmpleadoForm />} />
+            <Route path="empleados/:id" element={<EmpleadoForm />} />
             <Route path="horarios" element={<HorariosPage />} />
+            <Route path="horarios/nuevo" element={<HorarioForm />} />
+            <Route path="horarios/:id" element={<HorarioForm />} />
             <Route path="fichadas" element={<FichadasPage />} />
             <Route path="novedades" element={<NovedadesPage />} />
             <Route path="cierre" element={<CierrePage />} />

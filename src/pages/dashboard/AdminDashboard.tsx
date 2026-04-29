@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Users, Clock, AlertTriangle, TrendingUp,
@@ -7,8 +8,9 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell,
 } from 'recharts';
-import { empleados } from '../../data/empleados';
-import { novedades } from '../../data/novedades';
+import { empleadoService } from '../../services/empleado.service';
+import { novedades } from '../../data/novedades'; // V2 Placeholder
+import type { Empleado } from '../../types';
 
 const weeklyData = [
   { day: 'Lun', presentes: 8, ausentes: 0, tardanzas: 1 },
@@ -36,11 +38,23 @@ const recentActivity = [
 export function AdminDashboard() {
   const navigate = useNavigate();
 
+  const [empleados, setEmpleados] = useState<Empleado[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    empleadoService.getAll()
+      .then(data => setEmpleados(data))
+      .catch(err => console.error(err))
+      .finally(() => setLoading(false));
+  }, []);
+
   const activeEmployees = empleados.filter((e) => e.estado === 'activo').length;
-  const pendingNovedades = novedades.filter((n) => n.estado === 'pendiente').length;
-  // Simulated today stats
+  const pendingNovedades = novedades.filter((n) => n.estado === 'pendiente').length; // Placeholder
+  // Simulated today stats (V2)
   const presentToday = 6;
   const tardanzasToday = 2;
+
+  if (loading) return <div style={{ padding: '20px' }}>Cargando panel...</div>;
 
   return (
     <div className="dashboard-page">
@@ -56,13 +70,13 @@ export function AdminDashboard() {
           <div className="stat-info">
             <span className="stat-label">Empleados Activos</span>
             <span className="stat-value">{activeEmployees}</span>
-            <span className="stat-change up">+1 este mes</span>
+
           </div>
         </div>
         <div className="stat-card" id="stat-presentes">
           <div className="stat-icon green"><Clock size={24} /></div>
           <div className="stat-info">
-            <span className="stat-label">Presentes Hoy</span>
+            <span className="stat-label">Presentes Hoy (Demo V2)</span>
             <span className="stat-value">{presentToday}</span>
             <span className="stat-change up">de {activeEmployees} activos</span>
           </div>
@@ -70,7 +84,7 @@ export function AdminDashboard() {
         <div className="stat-card" id="stat-tardanzas">
           <div className="stat-icon yellow"><AlertTriangle size={24} /></div>
           <div className="stat-info">
-            <span className="stat-label">Tardanzas Hoy</span>
+            <span className="stat-label">Tardanzas Hoy (Demo V2)</span>
             <span className="stat-value">{tardanzasToday}</span>
             <span className="stat-change down">↑ vs ayer</span>
           </div>
@@ -78,7 +92,7 @@ export function AdminDashboard() {
         <div className="stat-card" id="stat-novedades">
           <div className="stat-icon red"><TrendingUp size={24} /></div>
           <div className="stat-info">
-            <span className="stat-label">Novedades Pendientes</span>
+            <span className="stat-label">Nov. Pendientes (Demo)</span>
             <span className="stat-value">{pendingNovedades}</span>
             <span className="stat-change down">requieren revisión</span>
           </div>

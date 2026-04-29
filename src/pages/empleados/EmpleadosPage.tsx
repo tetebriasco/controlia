@@ -1,8 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, Eye, Edit, UserX, Filter } from 'lucide-react';
-import { empleados as empleadosData } from '../../data/empleados';
-import { horarios } from '../../data/horarios';
+import { Search, Plus, Eye, Edit, Filter, Trash2 } from 'lucide-react';
+import { empleadoService } from '../../services/empleado.service';
 import type { Empleado, EstadoEmpleado } from '../../types';
 import './EmpleadosPage.css';
 
@@ -10,7 +9,51 @@ export function EmpleadosPage() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<EstadoEmpleado | 'todos'>('todos');
-  const [empleados] = useState<Empleado[]>(empleadosData);
+  
+  const [empleados, setEmpleados] = useState<Empleado[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchEmpleados = async () => {
+    try {
+      setLoading(true);
+      const data = await empleadoService.getAll();
+      setEmpleados(data);
+      setError(null);
+    } catch (err: any) {
+      setError('Error al obtener empleados: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchEmpleados();
+  }, []);
+
+  const handleDelete = async (id: number) => {
+    if (window.confirm('¿Estás seguro que deseas eliminar este empleado?')) {
+      try {
+        await empleadoService.delete(id);
+        setEmpleados(empleados.filter(e => e.id !== id));
+      } catch (err: any) {
+        alert('No se pudo eliminar: ' + err.message);
+      }
+    }
+  };
+
+  type SortKey = 'legajo' | 'nombre' | 'dni' | 'categoriaLaboral' | 'tipoJornada' | 'estado';
+  const [sortKey, setSortKey] = useState<SortKey>('legajo');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  };
 
   const filtered = empleados.filter((e) => {
     const matchSearch =
@@ -22,10 +65,17 @@ export function EmpleadosPage() {
     return matchSearch && matchStatus;
   });
 
-  const getHorarioName = (id: number) => {
-    const h = horarios.find((h) => h.id === id);
-    return h?.nombre || '—';
-  };
+  const sorted = [...filtered].sort((a, b) => {
+    let valA = a[sortKey];
+    let valB = b[sortKey];
+    if (typeof valA === 'string' && typeof valB === 'string') {
+      valA = valA.toLowerCase();
+      valB = valB.toLowerCase();
+    }
+    if (valA < valB) return sortDir === 'asc' ? -1 : 1;
+    if (valA > valB) return sortDir === 'asc' ? 1 : -1;
+    return 0;
+  });
 
   const statusCounts = {
     todos: empleados.length,
@@ -33,6 +83,14 @@ export function EmpleadosPage() {
     inactivo: empleados.filter((e) => e.estado === 'inactivo').length,
     suspendido: empleados.filter((e) => e.estado === 'suspendido').length,
   };
+
+  if (loading) {
+    return <div style={{ padding: '20px', textAlign: 'center' }}>Cargando empleados...</div>;
+  }
+
+  if (error) {
+    return <div style={{ padding: '20px', color: 'red' }}>{error}</div>;
+  }
 
   return (
     <div className="empleados-page animate-fade-in">
@@ -83,18 +141,18 @@ export function EmpleadosPage() {
             <table className="data-table" id="tabla-empleados">
               <thead>
                 <tr>
-                  <th>Legajo</th>
-                  <th>Nombre Completo</th>
-                  <th>DNI</th>
-                  <th>Categoría</th>
+                  <th onClick={() => handleSort('legajo')} style={{ cursor: 'pointer' }}>Legajo {sortKey === 'legajo' && (sortDir === 'asc' ? '↑' : '↓')}</th>
+                  <th onClick={() => handleSort('nombre')} style={{ cursor: 'pointer' }}>Nombre Completo {sortKey === 'nombre' && (sortDir === 'asc' ? '↑' : '↓')}</th>
+                  <th onClick={() => handleSort('dni')} style={{ cursor: 'pointer' }}>DNI {sortKey === 'dni' && (sortDir === 'asc' ? '↑' : '↓')}</th>
+                  <th onClick={() => handleSort('categoriaLaboral')} style={{ cursor: 'pointer' }}>Categoría {sortKey === 'categoriaLaboral' && (sortDir === 'asc' ? '↑' : '↓')}</th>
                   <th>Horario</th>
-                  <th>Jornada</th>
-                  <th>Estado</th>
-                  <th>Acciones</th>
+                  <th onClick={() => handleSort('tipoJornada')} style={{ cursor: 'pointer', textAlign: 'center' }}>Jornada {sortKey === 'tipoJornada' && (sortDir === 'asc' ? '↑' : '↓')}</th>
+                  <th onClick={() => handleSort('estado')} style={{ cursor: 'pointer', textAlign: 'center' }}>Estado {sortKey === 'estado' && (sortDir === 'asc' ? '↑' : '↓')}</th>
+                  <th style={{ textAlign: 'center' }}>Acciones</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((emp) => (
+                {sorted.map((emp) => (
                   <tr key={emp.id}>
                     <td>
                       <span style={{ fontFamily: 'var(--font-heading)', fontWeight: 600, color: 'var(--azul-principal)' }}>
@@ -119,30 +177,28 @@ export function EmpleadosPage() {
                     </td>
                     <td>{emp.dni}</td>
                     <td>{emp.categoriaLaboral}</td>
-                    <td style={{ fontSize: '12px' }}>{getHorarioName(emp.horarioId)}</td>
-                    <td>
+                    <td style={{ fontSize: '12px' }}>{emp.horarios?.nombre || '—'}</td>
+                    <td style={{ textAlign: 'center' }}>
                       <span className={`badge badge-${emp.tipoJornada === 'completa' ? 'activo' : 'pendiente'}`}>
                         {emp.tipoJornada.charAt(0).toUpperCase() + emp.tipoJornada.slice(1)}
                       </span>
                     </td>
-                    <td>
+                    <td style={{ textAlign: 'center' }}>
                       <span className={`badge badge-${emp.estado}`}>
                         {emp.estado.charAt(0).toUpperCase() + emp.estado.slice(1)}
                       </span>
                     </td>
-                    <td>
-                      <div style={{ display: 'flex', gap: '4px' }}>
-                        <button className="btn btn-ghost btn-sm" title="Ver detalle" onClick={() => navigate(`/empleados/${emp.id}`)}>
+                    <td style={{ textAlign: 'center' }}>
+                      <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                        <button className="btn btn-ghost btn-sm" title="Ver detalle">
                           <Eye size={15} />
                         </button>
-                        <button className="btn btn-ghost btn-sm" title="Editar">
+                        <button className="btn btn-ghost btn-sm" title="Editar" onClick={() => navigate(`/empleados/${emp.id}`)}>
                           <Edit size={15} />
                         </button>
-                        {emp.estado === 'activo' && (
-                          <button className="btn btn-ghost btn-sm" title="Dar de baja" style={{ color: 'var(--rojo)' }}>
-                            <UserX size={15} />
-                          </button>
-                        )}
+                        <button className="btn btn-ghost btn-sm" title="Dar de baja" style={{ color: 'var(--rojo)' }} onClick={() => handleDelete(emp.id)}>
+                          <Trash2 size={15} />
+                        </button>
                       </div>
                     </td>
                   </tr>
