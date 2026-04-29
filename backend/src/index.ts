@@ -18,6 +18,16 @@ app.get('/', (req, res) => {
   res.json({ message: 'Controlia Backend API V1 - Funcionando' });
 });
 
+// Catch-all 404 para la API (devolver siempre JSON)
+app.use((req, res) => {
+  console.log(`[404] Ruta no encontrada: ${req.method} ${req.url}`);
+  res.status(404).json({ 
+    message: 'Ruta no encontrada en el servidor', 
+    path: req.url,
+    method: req.method 
+  });
+});
+
 app.listen(port, () => {
-  console.log(`[server]: Servidor inicializado en http://localhost:${port}`);
+  console.log(`[server]: Servidor inicializado en el puerto ${port}`);
 });

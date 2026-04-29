@@ -6,7 +6,9 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
     ...options.headers,
   };
 
-  const response = await fetch(`${API_URL}${endpoint}`, {
+  const url = `${API_URL}${endpoint}`;
+  
+  const response = await fetch(url, {
     ...options,
     headers,
   });

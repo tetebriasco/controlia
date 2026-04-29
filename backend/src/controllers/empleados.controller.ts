@@ -81,9 +81,9 @@ export const createEmpleado = async (req: Request, res: Response) => {
     const existe = await prisma.empleados.findFirst({
       where: {
         OR: [
-          { legajo: data.Legajo },
-          { dni: data.Dni },
-          { cuil: data.Cuil }
+          { legajo: data.legajo },
+          { dni: data.dni },
+          { cuil: data.cuil }
         ]
       }
     });
