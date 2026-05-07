@@ -76,7 +76,7 @@ export function AdminDashboard() {
         <div className="stat-card" id="stat-presentes">
           <div className="stat-icon green"><Clock size={24} /></div>
           <div className="stat-info">
-            <span className="stat-label">Presentes Hoy (Demo V2)</span>
+            <span className="stat-label">Presentes Hoy</span>
             <span className="stat-value">{presentToday}</span>
             <span className="stat-change up">de {activeEmployees} activos</span>
           </div>
@@ -84,7 +84,7 @@ export function AdminDashboard() {
         <div className="stat-card" id="stat-tardanzas">
           <div className="stat-icon yellow"><AlertTriangle size={24} /></div>
           <div className="stat-info">
-            <span className="stat-label">Tardanzas Hoy (Demo V2)</span>
+            <span className="stat-label">Tardanzas Hoy</span>
             <span className="stat-value">{tardanzasToday}</span>
             <span className="stat-change down">↑ vs ayer</span>
           </div>
@@ -92,7 +92,7 @@ export function AdminDashboard() {
         <div className="stat-card" id="stat-novedades">
           <div className="stat-icon red"><TrendingUp size={24} /></div>
           <div className="stat-info">
-            <span className="stat-label">Nov. Pendientes (Demo)</span>
+            <span className="stat-label">Nov. Pendientes</span>
             <span className="stat-value">{pendingNovedades}</span>
             <span className="stat-change down">requieren revisión</span>
           </div>

@@ -3,6 +3,7 @@ import cors from 'cors';
 
 import horariosRoutes from './routes/horarios.routes';
 import empleadosRoutes from './routes/empleados.routes';
+import fichadasRoutes from './routes/fichadas.routes';
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -13,6 +14,7 @@ app.use(express.json());
 // Rutas API
 app.use('/api/horarios', horariosRoutes);
 app.use('/api/empleados', empleadosRoutes);
+app.use('/api/fichadas', fichadasRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'Controlia Backend API V1 - Funcionando' });

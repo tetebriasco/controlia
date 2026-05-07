@@ -1,47 +1,71 @@
-import { useState, useEffect } from 'react';
-import { LogIn, LogOut as LogOutIcon, Clock, CalendarDays, AlertCircle } from 'lucide-react';
-import { fichadas } from '../../data/fichadas'; // V2
-import { novedades } from '../../data/novedades'; // V2
+import { useState, useEffect, useCallback } from 'react';
+import { LogIn, LogOut as LogOutIcon, Clock, CalendarDays, AlertCircle, Loader2 } from 'lucide-react';
+import { novedades } from '../../data/novedades'; // V2 mock - se reemplaza en V3
 import { empleadoService } from '../../services/empleado.service';
 import { horarioService } from '../../services/horario.service';
-import type { Empleado, Horario } from '../../types';
+import { fichadaService } from '../../services/fichada.service';
+import type { Empleado, Horario, Fichada } from '../../types';
+
+// ID del empleado demo (María Gómez = 2). En V3 vendrá del AuthContext real.
+const EMPLEADO_DEMO_ID = 2;
 
 export function EmpleadoDashboard() {
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [isClockedIn, setIsClockedIn] = useState(true);
-  
+  const [isClockedIn, setIsClockedIn] = useState(false);
+  const [fichandoTipo, setFichandoTipo] = useState<'entrada' | 'salida' | null>(null);
+
   const [empleado, setEmpleado] = useState<Empleado | null>(null);
   const [horario, setHorario] = useState<Horario | null>(null);
+  const [myFichadas, setMyFichadas] = useState<Fichada[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fichadaError, setFichadaError] = useState<string | null>(null);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
+  const fetchFichadas = useCallback(async () => {
+    // Get local date in YYYY-MM-DD format, adjusting for timezone offset
+    const d = new Date();
+    const tzOffset = d.getTimezoneOffset() * 60000;
+    const localISODate = new Date(d.getTime() - tzOffset).toISOString().split('T')[0];
+
+    const data = await fichadaService.getAll({ empleadoId: EMPLEADO_DEMO_ID, fecha: localISODate });
+    const sorted = [...data].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    setMyFichadas(sorted.slice(0, 8));
+    // Determinar si el último registro fue una entrada (= está fichado)
+    if (sorted.length > 0) {
+      setIsClockedIn(sorted[0].tipo === 'entrada');
+    } else {
+      setIsClockedIn(false);
+    }
+  }, []);
+
   useEffect(() => {
-    // Simulamos que el usuario logueado es el Empleado 2 para la demo
     const fetchData = async () => {
       try {
-        const emp = await empleadoService.getById(2);
+        const [emp] = await Promise.all([empleadoService.getById(EMPLEADO_DEMO_ID)]);
         setEmpleado(emp);
         if (emp.horarioId) {
           const hor = await horarioService.getById(emp.horarioId);
           setHorario(hor);
         }
+        await fetchFichadas();
       } catch (err) {
-        console.error("Error al cargar empleado:", err);
+        console.error('Error al cargar empleado:', err);
       } finally {
         setLoading(false);
       }
     };
     fetchData();
-  }, []);
+  }, [fetchFichadas]);
 
   const timeStr = currentTime.toLocaleTimeString('es-AR', {
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
+    hour12: false,
   });
 
   const dateStr = currentTime.toLocaleDateString('es-AR', {
@@ -51,18 +75,27 @@ export function EmpleadoDashboard() {
     year: 'numeric',
   });
 
-  // Employee ID 2 (María Gómez) data - V2 Mocks
-  const myFichadas = fichadas
-    .filter((f) => f.empleadoId === 2)
-    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-    .slice(0, 8);
-
   const myNovedades = novedades
     .filter((n) => n.empleadoId === 2 && n.periodo === '2026-04')
     .slice(0, 5);
 
-  const handleFichar = (tipo: 'entrada' | 'salida') => {
-    setIsClockedIn(tipo === 'entrada');
+  const handleFichar = async (tipo: 'entrada' | 'salida') => {
+    setFichandoTipo(tipo);
+    setFichadaError(null);
+    try {
+      await fichadaService.create({
+        empleadoId: EMPLEADO_DEMO_ID,
+        timestamp: new Date().toISOString(),
+        tipo,
+        origen: 'manual',
+      });
+      await fetchFichadas(); // Recargar lista actualizada
+    } catch (err: any) {
+      setFichadaError('No se pudo registrar la fichada. Intentá de nuevo.');
+      console.error(err);
+    } finally {
+      setFichandoTipo(null);
+    }
   };
 
   if (loading) return <div style={{ padding: '20px' }}>Cargando panel...</div>;
@@ -83,26 +116,35 @@ export function EmpleadoDashboard() {
               <div className="clock-date">{dateStr}</div>
               <div className={`clock-status ${isClockedIn ? 'in' : 'out'}`}>
                 <Clock size={14} />
-                {isClockedIn ? 'Fichada de entrada registrada (Demo V2)' : 'Sin fichar (Demo V2)'}
+                {isClockedIn ? 'Dentro del turno — fichada de entrada registrada' : 'Sin fichar — registrá tu entrada'}
               </div>
+              {fichadaError && (
+                <div style={{ color: 'var(--rojo)', fontSize: '13px', textAlign: 'center', marginTop: '4px' }}>
+                  {fichadaError}
+                </div>
+              )}
               <div className="clock-buttons">
                 <button
                   className="clock-btn entrada"
-                  disabled={isClockedIn}
+                  disabled={isClockedIn || fichandoTipo !== null}
                   onClick={() => handleFichar('entrada')}
                   id="btn-fichar-entrada"
                 >
-                  <LogIn size={20} />
-                  Entrada
+                  {fichandoTipo === 'entrada'
+                    ? <><Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> Fichando...</>
+                    : <><LogIn size={20} /> Entrada</>
+                  }
                 </button>
                 <button
                   className="clock-btn salida"
-                  disabled={!isClockedIn}
+                  disabled={!isClockedIn || fichandoTipo !== null}
                   onClick={() => handleFichar('salida')}
                   id="btn-fichar-salida"
                 >
-                  <LogOutIcon size={20} />
-                  Salida
+                  {fichandoTipo === 'salida'
+                    ? <><Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> Fichando...</>
+                    : <><LogOutIcon size={20} /> Salida</>
+                  }
                 </button>
               </div>
             </div>
@@ -112,7 +154,7 @@ export function EmpleadoDashboard() {
         {/* My Schedule */}
         <div className="card">
           <div className="card-header">
-            <h3 className="card-title">Mi Horario (DB Real)</h3>
+            <h3 className="card-title">Mi Horario</h3>
             <CalendarDays size={18} style={{ color: 'var(--gris-texto)' }} />
           </div>
           <div className="card-body">
@@ -170,7 +212,7 @@ export function EmpleadoDashboard() {
                       <tr key={f.id}>
                         <td>{d.toLocaleDateString('es-AR')}</td>
                         <td style={{ fontWeight: 600 }}>
-                          {d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+                          {d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false })}
                         </td>
                         <td>
                           <span className={`badge badge-${f.tipo}`}>
@@ -209,11 +251,10 @@ export function EmpleadoDashboard() {
               <div className="activity-list">
                 {myNovedades.map((n) => (
                   <div className="activity-item" key={n.id}>
-                    <div className={`activity-dot ${
-                      n.tipo.includes('tardanza') ? 'yellow' :
-                      n.tipo.includes('ausencia') ? 'red' :
-                      n.tipo.includes('horas_extra') ? 'teal' : 'blue'
-                    }`} />
+                    <div className={`activity-dot ${n.tipo.includes('tardanza') ? 'yellow' :
+                        n.tipo.includes('ausencia') ? 'red' :
+                          n.tipo.includes('horas_extra') ? 'teal' : 'blue'
+                      }`} />
                     <div className="activity-content">
                       <div className="activity-text">
                         {n.observacion}
